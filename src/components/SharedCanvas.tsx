@@ -2,6 +2,7 @@
 
 import { useRef, useEffect, useState, useCallback } from 'react'
 import { useRealtimeCanvas } from '@/hooks/useRealtimeCanvas'
+import type { Participant } from '@/app/types/canvas';
 
 function getUser() {
   if (typeof window === 'undefined') return { id: 'anon', name: 'Anon' }
@@ -42,7 +43,7 @@ export default function SharedCanvas({ eventId }: { eventId: string }) {
     ctx.imageSmoothingQuality = 'high'
     
     // Draw all strokes
-    participants.forEach((p, id) => {
+    participants.forEach((p: Participant, id: string) => {
       if (p.strokes && p.strokes.length > 0) {
         ctx.strokeStyle = p.color
         ctx.lineWidth = 3
@@ -98,7 +99,7 @@ export default function SharedCanvas({ eventId }: { eventId: string }) {
     }
     
     // Draw cursors
-    participants.forEach((p, id) => {
+    participants.forEach((p: Participant, id: string) => {
       if (id === user.id && !drawing) return // Hide own cursor when drawing
       
       ctx.save()
@@ -144,9 +145,18 @@ export default function SharedCanvas({ eventId }: { eventId: string }) {
 
   function getPos(e: React.PointerEvent | React.TouchEvent) {
     const rect = canvasRef.current!.getBoundingClientRect()
-    const x = 'touches' in e ? e.touches[0].clientX : e.clientX
-    const y = 'touches' in e ? e.touches[0].clientY : e.clientY
-    return { x: x - rect.left, y: y - rect.top }
+    let x, y;
+    if ('touches' in e && e.touches.length > 0) {
+      x = e.touches[0].clientX;
+      y = e.touches[0].clientY;
+    } else {
+      x = (e as any).clientX;
+      y = (e as any).clientY;
+    }
+    // Scale coordinates to canvas internal size
+    const scaleX = canvasRef.current!.width / rect.width;
+    const scaleY = canvasRef.current!.height / rect.height;
+    return { x: (x - rect.left) * scaleX, y: (y - rect.top) * scaleY };
   }
 
   function handlePointerDown(e: React.PointerEvent | React.TouchEvent) {

@@ -4,13 +4,15 @@ import { useRef, useEffect, useState, useCallback } from 'react';
 import { Point, Stroke } from '@/app/types/canvas';
 import { generateUserColor } from '@/lib/utils/color';
 import { getOrCreateUser } from '@/lib/utils/user';
+import { RealtimeParticipant } from '@/lib/realtimeCanvas';
 
 interface DrawingCanvasProps {
   paintingId: string;
   strokes: Stroke[];
-  participants: Map<string, any>;
+  participants: Map<string, RealtimeParticipant>;
   onStrokeComplete: (stroke: Stroke) => void;
-  onCursorMove: (x: number, y: number) => void;
+  onCursorMove: (x: number, y: number, isDrawing?: boolean) => void;
+  isConnected?: boolean;
 }
 
 export default function DrawingCanvas({
@@ -19,24 +21,38 @@ export default function DrawingCanvas({
   participants,
   onStrokeComplete,
   onCursorMove,
+  isConnected = true
 }: DrawingCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [currentPoints, setCurrentPoints] = useState<Point[]>([]);
   const user = getOrCreateUser();
   const userColor = generateUserColor(user.id);
+  const animationFrameRef = useRef<number | null>(null);
 
-  const getPointerPosition = (e: React.PointerEvent | React.TouchEvent): Point => {
+  const getPointerPosition = (e: any): Point => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
 
     const rect = canvas.getBoundingClientRect();
-    const x = 'touches' in e ? e.touches[0].clientX : e.clientX;
-    const y = 'touches' in e ? e.touches[0].clientY : e.clientY;
+    let x, y;
+    if (e.touches && e.touches.length > 0) {
+      x = e.touches[0].clientX;
+      y = e.touches[0].clientY;
+    } else if (typeof e.clientX === 'number' && typeof e.clientY === 'number') {
+      x = e.clientX;
+      y = e.clientY;
+    } else {
+      x = 0;
+      y = 0;
+    }
 
+    // Scale coordinates to canvas internal size
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
     return {
-      x: x - rect.left,
-      y: y - rect.top,
+      x: (x - rect.left) * scaleX,
+      y: (y - rect.top) * scaleY,
     };
   };
 
@@ -44,12 +60,12 @@ export default function DrawingCanvas({
     const point = getPointerPosition(e);
     setIsDrawing(true);
     setCurrentPoints([point]);
-    onCursorMove(point.x, point.y);
+    onCursorMove(point.x, point.y, true);
   };
 
   const draw = (e: React.PointerEvent | React.TouchEvent) => {
     const point = getPointerPosition(e);
-    onCursorMove(point.x, point.y);
+    onCursorMove(point.x, point.y, isDrawing);
 
     if (!isDrawing) return;
 
@@ -79,26 +95,12 @@ export default function DrawingCanvas({
     }
     setIsDrawing(false);
     setCurrentPoints([]);
+    const point = getPointerPosition(e);
+    onCursorMove(point.x, point.y, false);
   };
 
-  // Add non-passive touchmove event listener to prevent scrolling while drawing
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const handleTouchMove = (e: TouchEvent) => {
-      if (isDrawing) {
-        e.preventDefault();
-      }
-    };
-    canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
-    return () => {
-      canvas.removeEventListener('touchmove', handleTouchMove);
-    };
-  }, [isDrawing]);
-
-  // Canvas rendering
-  useEffect(() => {
+  // Canvas rendering with animation frame
+  const renderCanvas = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
@@ -108,11 +110,22 @@ export default function DrawingCanvas({
     // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+    // Show connection status
+    if (!isConnected) {
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#666';
+      ctx.font = '14px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Connecting...', canvas.width / 2, canvas.height / 2);
+      return;
+    }
+
     // Set canvas properties for smooth drawing
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
 
-    // Draw all strokes
+    // Draw all completed strokes
     strokes.forEach((stroke) => {
       if (stroke.points.length < 2) return;
 
@@ -135,7 +148,7 @@ export default function DrawingCanvas({
       ctx.stroke();
     });
 
-    // Draw current stroke
+    // Draw current stroke being drawn
     if (isDrawing && currentPoints.length > 1) {
       ctx.strokeStyle = userColor;
       ctx.lineWidth = 3;
@@ -156,57 +169,110 @@ export default function DrawingCanvas({
       ctx.stroke();
     }
 
-    // Draw cursors
-    participants.forEach((participant, id) => {
-      if (id === user.id || !participant.cursor) return;
+    // Draw other participants' cursors
+    participants.forEach((participant) => {
+      if (participant.userId === user.id) return;
+
+      const { cursor, color, userName, isDrawing: participantDrawing } = participant;
+      
+      // Skip if cursor is off-screen
+      if (cursor.x < 0 || cursor.y < 0) return;
 
       ctx.save();
-      ctx.fillStyle = participant.color;
+
+      // Draw cursor dot
+      ctx.fillStyle = color;
       ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
       ctx.shadowBlur = 4;
       ctx.shadowOffsetX = 2;
       ctx.shadowOffsetY = 2;
-
-      // Draw cursor
+      
       ctx.beginPath();
-      ctx.arc(participant.cursor.x, participant.cursor.y, 6, 0, 2 * Math.PI);
+      ctx.arc(cursor.x, cursor.y, participantDrawing ? 8 : 6, 0, 2 * Math.PI);
       ctx.fill();
 
-      // Draw name
+      // Draw name tag
       ctx.shadowBlur = 0;
       ctx.shadowOffsetX = 0;
       ctx.shadowOffsetY = 0;
       ctx.font = '12px sans-serif';
-      const text = participant.name || 'Anonymous';
+      const text = userName || 'Anonymous';
       const textWidth = ctx.measureText(text).width;
       
+      // Background for name
       ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
       ctx.fillRect(
-        participant.cursor.x + 10,
-        participant.cursor.y - 16,
+        cursor.x + 10,
+        cursor.y - 16,
         textWidth + 8,
         18
       );
       
+      // Name text
       ctx.fillStyle = 'white';
-      ctx.fillText(text, participant.cursor.x + 14, participant.cursor.y - 2);
+      ctx.fillText(text, cursor.x + 14, cursor.y - 2);
+
+      // Drawing indicator
+      if (participantDrawing) {
+        ctx.fillStyle = color;
+        ctx.font = '16px sans-serif';
+        ctx.fillText('✏️', cursor.x - 20, cursor.y + 5);
+      }
+
       ctx.restore();
     });
-  }, [strokes, currentPoints, isDrawing, participants, userColor, user.id]);
+  }, [strokes, currentPoints, isDrawing, participants, userColor, user.id, isConnected]);
+
+  // Setup animation loop
+  useEffect(() => {
+    const animate = () => {
+      renderCanvas();
+      animationFrameRef.current = requestAnimationFrame(animate);
+    };
+    animate();
+
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
+  }, [renderCanvas]);
+
+  // Add non-passive touch event listeners to prevent scrolling while drawing
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const prevent = (e: TouchEvent) => {
+      if (isDrawing) e.preventDefault();
+    };
+
+    canvas.addEventListener('touchmove', prevent, { passive: false });
+    canvas.addEventListener('touchstart', prevent, { passive: false });
+    canvas.addEventListener('touchend', prevent, { passive: false });
+
+    return () => {
+      canvas.removeEventListener('touchmove', prevent);
+      canvas.removeEventListener('touchstart', prevent);
+      canvas.removeEventListener('touchend', prevent);
+    };
+  }, [isDrawing]);
 
   return (
     <canvas
       ref={canvasRef}
       width={300}
       height={300}
-      className="w-full h-full bg-white touch-none cursor-crosshair"
+      className="w-full h-full bg-white touch-none cursor-crosshair rounded-md border"
       onPointerDown={startDrawing}
       onPointerMove={draw}
       onPointerUp={stopDrawing}
       onPointerLeave={stopDrawing}
+      onPointerCancel={stopDrawing}
       onTouchStart={startDrawing}
       onTouchMove={draw}
       onTouchEnd={stopDrawing}
+      onTouchCancel={stopDrawing}
     />
   );
 }

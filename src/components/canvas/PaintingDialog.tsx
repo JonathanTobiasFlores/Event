@@ -4,10 +4,10 @@ import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import DrawingCanvas from './DrawingCanvas';
 import { Painting, Stroke } from '@/app/types/canvas';
-import { createClient } from '@/lib/supabase/client';
-import { useRealtimePresence } from '@/hooks/useRealtimePresence';
 import { getOrCreateUser } from '@/lib/utils/user';
 import { generateUserColor } from '@/lib/utils/color';
+import { usePaintingRealtime } from '@/hooks/usePaintingRealtime';
+import { Loader2 } from 'lucide-react';
 
 interface PaintingDialogProps {
   painting: Painting;
@@ -16,114 +16,40 @@ interface PaintingDialogProps {
 }
 
 export default function PaintingDialog({ painting, isOpen, onClose }: PaintingDialogProps) {
-  const [strokes, setStrokes] = useState<Stroke[]>([]);
-  const [participants, setParticipants] = useState(new Map());
-  const supabase = createClient();
   const user = getOrCreateUser();
+  const userColor = generateUserColor(user.id);
   
-  const { presenceState, updatePresence, channel } = useRealtimePresence({
-    channelName: `painting:${painting.id}`,
+  const {
+    strokes,
+    participants,
+    isConnected,
+    sendCursorUpdate,
+    sendStroke
+  } = usePaintingRealtime({
+    paintingId: painting.id,
     userId: user.id,
-    userData: {
-      name: user.name,
-      color: generateUserColor(user.id),
-      cursor: { x: -100, y: -100 },
-    },
+    userName: user.name,
+    userColor
   });
 
-  // Load existing strokes
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const loadStrokes = async () => {
-      const { data, error } = await supabase
-        .from('canvas_strokes')
-        .select('*')
-        .eq('painting_id', painting.id)
-        .order('created_at', { ascending: true });
-
-      if (data && !error) {
-        setStrokes(
-          data.map((row) => ({
-            points: row.points,
-            color: row.color,
-            userId: row.user_id,
-            userName: row.user_name || 'Anonymous',
-          }))
-        );
-      }
-    };
-
-    loadStrokes();
-  }, [painting.id, isOpen, supabase]);
-
-  // Update participants from presence state
-  useEffect(() => {
-    const newParticipants = new Map();
-    Object.entries(presenceState).forEach(([key, presences]: [string, any]) => {
-      if (presences.length > 0) {
-        const presence = presences[0];
-        newParticipants.set(key, presence);
-      }
-    });
-    setParticipants(newParticipants);
-  }, [presenceState]);
-
-  // Listen for new strokes
-  useEffect(() => {
-    if (!channel) return;
-
-    const handleNewStroke = ({ payload }: { payload: any }) => {
-      if (payload.userId !== user.id) {
-        setStrokes((prev) => [...prev, payload]);
-      }
-    };
-
-    const result: any = channel.on('broadcast', { event: 'stroke' }, handleNewStroke);
-
-    return () => {
-      if (result && typeof result.unsubscribe === 'function') {
-        result.unsubscribe();
-      }
-    };
-  }, [channel, user.id]);
-
   const handleStrokeComplete = async (stroke: Stroke) => {
-    // Add to local state
-    setStrokes((prev) => [...prev, stroke]);
-
-    // Save to database
-    await supabase.from('canvas_strokes').insert({
-      painting_id: painting.id,
-      user_id: stroke.userId,
-      user_name: stroke.userName,
-      color: stroke.color,
-      points: stroke.points,
-    });
-
-    // Broadcast to others
-    if (channel) {
-      channel.send({
-        type: 'broadcast',
-        event: 'stroke',
-        payload: stroke,
-      });
-    }
+    await sendStroke(stroke.points);
   };
 
-  const handleCursorMove = (x: number, y: number) => {
-    updatePresence({
-      name: user.name,
-      color: generateUserColor(user.id),
-      cursor: { x, y },
-    });
+  const handleCursorMove = (x: number, y: number, isDrawing: boolean = false) => {
+    sendCursorUpdate(x, y, isDrawing);
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-[95vw] w-full sm:max-w-lg p-0">
         <DialogHeader className="p-4 pb-2">
-          <DialogTitle>{painting.title}</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            {painting.title}
+            {!isConnected && (
+              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            )}
+          </DialogTitle>
         </DialogHeader>
         <div className="aspect-square w-full max-h-[70vh] p-4">
           <DrawingCanvas
@@ -132,12 +58,35 @@ export default function PaintingDialog({ painting, isOpen, onClose }: PaintingDi
             participants={participants}
             onStrokeComplete={handleStrokeComplete}
             onCursorMove={handleCursorMove}
+            isConnected={isConnected}
           />
         </div>
-        <div className="p-4 pt-2 border-t">
+        <div className="p-4 pt-2 border-t flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
             {participants.size} {participants.size === 1 ? 'person' : 'people'} drawing
           </p>
+          <div className="flex items-center gap-2">
+            {Array.from(participants.entries()).slice(0, 5).map(([id, participant]) => (
+              <div
+                key={id}
+                className="flex items-center gap-1"
+                title={participant.userName}
+              >
+                <div
+                  className="w-3 h-3 rounded-full"
+                  style={{ backgroundColor: participant.color }}
+                />
+                {participant.isDrawing && (
+                  <span className="text-xs">✏️</span>
+                )}
+              </div>
+            ))}
+            {participants.size > 5 && (
+              <span className="text-xs text-muted-foreground">
+                +{participants.size - 5}
+              </span>
+            )}
+          </div>
         </div>
       </DialogContent>
     </Dialog>
