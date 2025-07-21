@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import EventCard from '@/components/EventCard'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogTrigger } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogTrigger, DialogDescription } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -101,6 +101,9 @@ export default function EventsPage() {
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Create New Event</DialogTitle>
+                <DialogDescription>
+                  Fill in the details below to create a new event.
+                </DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
                 <Input
