@@ -11,6 +11,9 @@ import Link from 'next/link';
 import { format } from 'date-fns';
 import { getOrCreateUser } from '@/lib/utils/user';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 interface CreateListDialogProps {
   isOpen: boolean;
@@ -50,38 +53,53 @@ function CreateListDialog({ isOpen, onClose, eventId, userId }: CreateListDialog
     onClose();
   };
 
-  if (!isOpen) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
-      <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
-        <h2 className="text-lg font-semibold mb-2">Create List</h2>
-        <input
-          className="w-full border rounded px-2 py-1 mb-2"
-          placeholder="List Title"
-          value={title}
-          onChange={e => setTitle(e.target.value)}
-        />
-        <div className="flex gap-2 mb-2">
-          <input
-            className="flex-1 border rounded px-2 py-1"
-            placeholder="Add item"
-            value={item}
-            onChange={e => setItem(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handleAddItem()}
-          />
-          <Button onClick={handleAddItem} type="button">Add</Button>
-        </div>
-        <ul className="list-disc pl-5 mb-2">
-          {items.map((pt, idx) => <li key={idx}>{pt}</li>)}
-        </ul>
-        <div className="flex gap-2 justify-end">
-          <Button variant="outline" onClick={onClose} disabled={loading}>Cancel</Button>
-          <Button onClick={handleCreate} disabled={loading || !title.trim() || items.length === 0}>
-            {loading ? 'Creating...' : 'Create List'}
-          </Button>
-        </div>
-      </div>
-    </div>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Create List</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={e => { e.preventDefault(); handleCreate(); }} className="space-y-4">
+          <div>
+            <Label htmlFor="list-title">List Title</Label>
+            <Input
+              id="list-title"
+              value={title}
+              onChange={e => setTitle(e.target.value)}
+              placeholder="List Title"
+              required
+              disabled={loading}
+            />
+          </div>
+          <div>
+            <Label htmlFor="add-item">Add Item</Label>
+            <div className="flex gap-2 mb-2">
+              <Input
+                id="add-item"
+                className="flex-1"
+                placeholder="Add item"
+                value={item}
+                onChange={e => setItem(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleAddItem())}
+                disabled={loading}
+              />
+              <Button onClick={handleAddItem} type="button" disabled={loading || !item.trim()}>Add</Button>
+            </div>
+          </div>
+          <ul className="list-disc pl-5 mb-2">
+            {items.map((pt, idx) => <li key={idx}>{pt}</li>)}
+          </ul>
+          <DialogFooter className="flex gap-2 justify-end pt-4">
+            <DialogClose asChild>
+              <Button type="button" variant="outline" disabled={loading}>Cancel</Button>
+            </DialogClose>
+            <Button type="submit" disabled={loading || !title.trim() || items.length === 0}>
+              {loading ? 'Creating...' : 'Create List'}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
 

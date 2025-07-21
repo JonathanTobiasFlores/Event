@@ -9,14 +9,18 @@ import Link from 'next/link';
 import { Calendar, Plus } from 'lucide-react';
 import { Event } from '@/app/types/canvas';
 import { format } from 'date-fns';
+import EventCard from '@/components/EventCard';
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+import { Calendar as ShadcnCalendar } from '@/components/ui/calendar';
 
 export default function HomePage() {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
-  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [openDialog, setOpenDialog] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [eventName, setEventName] = useState('');
-  const [eventDate, setEventDate] = useState('');
   const [eventImageFile, setEventImageFile] = useState<File | null>(null);
   const [eventImagePreview, setEventImagePreview] = useState<string | null>(null);
   const supabase = createClient();
@@ -39,7 +43,7 @@ export default function HomePage() {
 
   async function createEvent(e: React.FormEvent) {
     e.preventDefault();
-    if (!eventName.trim() || !eventDate) return;
+    if (!eventName.trim() || !selectedDate) return;
     setCreating(true);
     const eventId = `event-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     let imageUrl: string | null = null;
@@ -61,16 +65,16 @@ export default function HomePage() {
       .insert({
         id: eventId,
         name: eventName.trim(),
-        date: new Date(eventDate).toISOString(),
+        date: selectedDate.toISOString(),
         image_url: imageUrl,
       });
     if (!error) {
       await loadEvents();
       setEventName('');
-      setEventDate('');
+      setSelectedDate(undefined);
       setEventImageFile(null);
       setEventImagePreview(null);
-      setShowCreateForm(false);
+      setOpenDialog(false);
     }
     setCreating(false);
   }
@@ -93,10 +97,17 @@ export default function HomePage() {
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Collaborative Canvas</h1>
           <p className="text-gray-600">Create events and draw together in real-time</p>
         </div>
-
-        {showCreateForm ? (
-          <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-            <h2 className="text-lg font-semibold mb-4">Create New Event</h2>
+        <Dialog open={openDialog} onOpenChange={setOpenDialog}>
+          <DialogTrigger asChild>
+            <Button size="lg" className="gap-2 mb-8">
+              <Plus className="h-5 w-5" />
+              Create Event
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Create New Event</DialogTitle>
+            </DialogHeader>
             <form onSubmit={createEvent} className="space-y-4">
               <div>
                 <Label htmlFor="name">Event Name</Label>
@@ -111,14 +122,26 @@ export default function HomePage() {
               </div>
               <div>
                 <Label htmlFor="date">Event Date</Label>
-                <Input
-                  id="date"
-                  type="date"
-                  value={eventDate}
-                  onChange={(e) => setEventDate(e.target.value)}
-                  required
-                  disabled={creating}
-                />
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={"w-full justify-start text-left font-normal " + (!selectedDate ? 'text-muted-foreground' : '')}
+                      type="button"
+                      disabled={creating}
+                    >
+                      {selectedDate ? format(selectedDate, 'PPP') : 'Pick a date'}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent align="start" className="p-0">
+                    <ShadcnCalendar
+                      mode="single"
+                      selected={selectedDate}
+                      onSelect={setSelectedDate}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
               <div>
                 <Label htmlFor="image">Event Image (optional)</Label>
@@ -143,29 +166,19 @@ export default function HomePage() {
                   <img src={eventImagePreview} alt="Preview" className="mt-2 rounded w-32 h-32 object-cover border" />
                 )}
               </div>
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setShowCreateForm(false)}
-                  disabled={creating}
-                >
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={creating}>
+              <DialogFooter className="flex gap-2 justify-end pt-4">
+                <DialogClose asChild>
+                  <Button type="button" variant="outline" disabled={creating}>
+                    Cancel
+                  </Button>
+                </DialogClose>
+                <Button type="submit" disabled={creating || !eventName.trim() || !selectedDate}>
                   {creating ? 'Creating...' : 'Create Event'}
                 </Button>
-              </div>
+              </DialogFooter>
             </form>
-          </div>
-        ) : (
-          <div className="mb-8 flex justify-center">
-            <Button onClick={() => setShowCreateForm(true)} size="lg" className="gap-2">
-              <Plus className="h-5 w-5" />
-              Create Event
-            </Button>
-          </div>
-        )}
+          </DialogContent>
+        </Dialog>
 
         {events.length === 0 ? (
           <div className="text-center py-16 bg-white rounded-lg">
@@ -179,20 +192,14 @@ export default function HomePage() {
               <Link
                 key={event.id}
                 href={`/events/${event.id}`}
-                className="block bg-white rounded-lg shadow hover:shadow-md transition-shadow p-6"
+                className="block"
+                style={{ textDecoration: 'none' }}
               >
-                {/* If you use EventCard, pass imageUrl here. If not, add image display. */}
-                {event.image_url && (
-                  <img src={event.image_url} alt={event.name} className="w-full h-40 object-cover rounded mb-2" />
-                )}
-                <h3 className="text-lg font-semibold mb-2">{event.name}</h3>
-                <p className="text-gray-600 flex items-center gap-2">
-                  <Calendar className="h-4 w-4" />
-                  {format(new Date(event.date), 'yyyy-MM-dd')}
-                </p>
-                <p className="text-sm text-gray-500 mt-4">
-                  Tap to view canvases →
-                </p>
+                <EventCard
+                  name={event.name}
+                  date={new Date(event.date)}
+                  imageUrl={event.image_url}
+                />
               </Link>
             ))}
           </div>
