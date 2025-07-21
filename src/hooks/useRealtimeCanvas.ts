@@ -14,13 +14,12 @@ export function useRealtimeCanvas(eventId: string, user: { id: string, name?: st
   useEffect(() => {
     cleanupRef.current = setupRealtimeCanvas(eventId, user, () => setTick(t => t + 1))
     setJoined(true)
-    const int = setInterval(() => setTick(t => t + 1), 100)
+    // Remove the interval - we'll rely on actual changes to trigger updates
     return () => {
       cleanupRef.current?.()
       setJoined(false)
-      clearInterval(int)
     }
-  }, [eventId, user.id])
+  }, [eventId, user.id, user.name])
 
   return {
     participants,
@@ -29,4 +28,4 @@ export function useRealtimeCanvas(eventId: string, user: { id: string, name?: st
     joined,
     tick
   }
-} 
+}
