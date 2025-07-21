@@ -14,6 +14,9 @@ interface CanvasState {
 
 const canvasStates = new Map<string, CanvasState>()
 
+// Add in-progress stroke broadcasting
+const inProgressStrokes = new Map<string, Map<string, { points: { x: number, y: number }[], color: string }>>();
+
 export interface RealtimeStroke {
   id: string
   points: Array<{ x: number; y: number }>
@@ -175,4 +178,24 @@ export async function broadcastStroke(
   })
 
   return stroke
+}
+
+export function broadcastInProgressStroke(paintingId: string, userId: string, points: { x: number, y: number }[], color: string) {
+  const state = canvasStates.get(paintingId);
+  if (!state?.channel) return;
+  state.channel.send({
+    type: 'broadcast',
+    event: 'inprogress',
+    payload: { userId, points, color }
+  });
+}
+
+export function listenInProgressStrokes(paintingId: string, onUpdate: (userId: string, points: { x: number, y: number }[], color: string) => void) {
+  const state = canvasStates.get(paintingId);
+  if (!state?.channel) return;
+  state.channel.on('broadcast', { event: 'inprogress' }, ({ payload }) => {
+    if (payload && payload.userId && payload.points) {
+      onUpdate(payload.userId, payload.points, payload.color);
+    }
+  });
 }

@@ -7,7 +7,8 @@ export default function EventParticipantsBar({ eventName, eventDate, eventImage,
   const user = { id: 'dummy', name: 'You' }
   const { participants } = useRealtimeCanvas(eventId, user)
   // Convert participants map to array
-  const participantList = Array.from(participants.entries()).map(([id, p]) => ({ id, name: p.name || id.slice(0, 6), color: p.color }))
+  const participantList = Array.from(participants.entries() as Iterable<[string, any]>)
+    .map(([id, p]) => ({ id, name: p.name || id.slice(0, 6), color: p.color })) as { id: string; name: string; color: string }[];
   return (
     <EventTopBar
       eventName={eventName}

@@ -9,7 +9,7 @@ export default function ParticipantsList({ eventId }: { eventId: string }) {
     <div className="fixed left-0 top-16 bg-white rounded-r-lg shadow-md p-3 z-20">
       <h3 className="text-sm font-semibold mb-2">Participants ({participants.size})</h3>
       <div className="space-y-1">
-        {Array.from(participants.entries()).map(([id, p]) => (
+        {Array.from(participants.entries() as Iterable<[string, any]>).map(([id, p]) => (
           <div key={id} className="flex items-center gap-2">
             <div 
               className="w-3 h-3 rounded-full" 

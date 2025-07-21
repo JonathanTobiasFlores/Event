@@ -5,6 +5,7 @@ import { Point, Stroke } from '@/app/types/canvas';
 import { generateUserColor } from '@/lib/utils/color';
 import { getOrCreateUser } from '@/lib/utils/user';
 import { RealtimeParticipant } from '@/lib/realtimeCanvas';
+import { broadcastInProgressStroke, listenInProgressStrokes } from '@/lib/realtimeCanvas';
 
 interface DrawingCanvasProps {
   paintingId: string;
@@ -26,9 +27,17 @@ export default function DrawingCanvas({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [currentPoints, setCurrentPoints] = useState<Point[]>([]);
+  const [ghostStrokes, setGhostStrokes] = useState<Record<string, { points: Point[]; color: string }>>({});
   const user = getOrCreateUser();
   const userColor = generateUserColor(user.id);
   const animationFrameRef = useRef<number | null>(null);
+
+  // Listen for in-progress strokes from others
+  useEffect(() => {
+    listenInProgressStrokes(paintingId, (userId, points, color) => {
+      setGhostStrokes(prev => ({ ...prev, [userId]: { points, color } }));
+    });
+  }, [paintingId]);
 
   const getPointerPosition = (e: any): Point => {
     const canvas = canvasRef.current;
@@ -78,7 +87,10 @@ export default function DrawingCanvas({
       );
 
       if (distance > 2) {
-        return [...prev, point];
+        const newPoints = [...prev, point];
+        // Broadcast in-progress stroke
+        broadcastInProgressStroke(paintingId, user.id, newPoints, userColor);
+        return newPoints;
       }
       return prev;
     });
@@ -97,6 +109,8 @@ export default function DrawingCanvas({
     setCurrentPoints([]);
     const point = getPointerPosition(e);
     onCursorMove(point.x, point.y, false);
+    // Clear own ghost stroke
+    setGhostStrokes(prev => { const copy = { ...prev }; delete copy[user.id]; return copy });
   };
 
   // Canvas rendering with animation frame
@@ -145,6 +159,26 @@ export default function DrawingCanvas({
 
       const lastPoint = stroke.points[stroke.points.length - 1];
       ctx.lineTo(lastPoint.x, lastPoint.y);
+      ctx.stroke();
+    });
+
+    // Draw ghost strokes from other users
+    Object.entries(ghostStrokes).forEach(([uid, stroke]) => {
+      if (uid === user.id) return;
+      if (stroke.points.length < 2) return;
+      ctx.strokeStyle = stroke.color || '#888';
+      ctx.lineWidth = 3;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      ctx.moveTo(stroke.points[0].x, stroke.points[0].y);
+      for (let i = 1; i < stroke.points.length - 1; i++) {
+        const xc = (stroke.points[i].x + stroke.points[i + 1].x) / 2;
+        const yc = (stroke.points[i].y + stroke.points[i + 1].y) / 2;
+        ctx.quadraticCurveTo(stroke.points[i].x, stroke.points[i].y, xc, yc);
+      }
+      const last = stroke.points[stroke.points.length - 1];
+      ctx.lineTo(last.x, last.y);
       ctx.stroke();
     });
 
@@ -221,7 +255,7 @@ export default function DrawingCanvas({
 
       ctx.restore();
     });
-  }, [strokes, currentPoints, isDrawing, participants, userColor, user.id, isConnected]);
+  }, [strokes, currentPoints, isDrawing, participants, userColor, user.id, isConnected, ghostStrokes]);
 
   // Setup animation loop
   useEffect(() => {

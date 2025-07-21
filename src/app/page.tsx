@@ -17,6 +17,8 @@ export default function HomePage() {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [eventName, setEventName] = useState('');
   const [eventDate, setEventDate] = useState('');
+  const [eventImageFile, setEventImageFile] = useState<File | null>(null);
+  const [eventImagePreview, setEventImagePreview] = useState<string | null>(null);
   const supabase = createClient();
 
   useEffect(() => {
@@ -38,22 +40,36 @@ export default function HomePage() {
   async function createEvent(e: React.FormEvent) {
     e.preventDefault();
     if (!eventName.trim() || !eventDate) return;
-    
     setCreating(true);
     const eventId = `event-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    
+    let imageUrl: string | null = null;
+    if (eventImageFile) {
+      // Upload image to Supabase Storage
+      const fileExt = eventImageFile.name.split('.').pop();
+      const filePath = `events/${eventId}.${fileExt}`;
+      const { data: uploadData, error: uploadError } = await supabase.storage.from('event-images').upload(filePath, eventImageFile, { upsert: true });
+      if (uploadError) {
+        console.error('Supabase upload error:', uploadError);
+        alert('Image upload failed: ' + uploadError.message);
+      } else {
+        const { data: publicUrlData } = supabase.storage.from('event-images').getPublicUrl(filePath);
+        imageUrl = publicUrlData.publicUrl;
+      }
+    }
     const { error } = await supabase
       .from('events')
       .insert({
         id: eventId,
         name: eventName.trim(),
-        date: new Date(eventDate).toISOString()
+        date: new Date(eventDate).toISOString(),
+        image_url: imageUrl,
       });
-    
     if (!error) {
       await loadEvents();
       setEventName('');
       setEventDate('');
+      setEventImageFile(null);
+      setEventImagePreview(null);
       setShowCreateForm(false);
     }
     setCreating(false);
@@ -104,6 +120,29 @@ export default function HomePage() {
                   disabled={creating}
                 />
               </div>
+              <div>
+                <Label htmlFor="image">Event Image (optional)</Label>
+                <Input
+                  id="image"
+                  type="file"
+                  accept="image/*"
+                  disabled={creating}
+                  onChange={e => {
+                    const file = e.target.files?.[0] || null;
+                    setEventImageFile(file);
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onload = (ev) => setEventImagePreview(ev.target?.result as string);
+                      reader.readAsDataURL(file);
+                    } else {
+                      setEventImagePreview(null);
+                    }
+                  }}
+                />
+                {eventImagePreview && (
+                  <img src={eventImagePreview} alt="Preview" className="mt-2 rounded w-32 h-32 object-cover border" />
+                )}
+              </div>
               <div className="flex gap-2">
                 <Button
                   type="button"
@@ -142,6 +181,10 @@ export default function HomePage() {
                 href={`/events/${event.id}`}
                 className="block bg-white rounded-lg shadow hover:shadow-md transition-shadow p-6"
               >
+                {/* If you use EventCard, pass imageUrl here. If not, add image display. */}
+                {event.image_url && (
+                  <img src={event.image_url} alt={event.name} className="w-full h-40 object-cover rounded mb-2" />
+                )}
                 <h3 className="text-lg font-semibold mb-2">{event.name}</h3>
                 <p className="text-gray-600 flex items-center gap-2">
                   <Calendar className="h-4 w-4" />
