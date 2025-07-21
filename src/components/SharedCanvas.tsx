@@ -200,25 +200,7 @@ export default function SharedCanvas({ eventId }: { eventId: string }) {
         onPointerUp={handlePointerUp}
         onPointerLeave={handlePointerUp}
         onPointerCancel={handlePointerUp}
-        onTouchStart={handlePointerDown}
-        onTouchMove={handlePointerMove}
-        onTouchEnd={handlePointerUp}
       />
-      <div className="absolute top-4 left-4 bg-white rounded-lg shadow-md p-3">
-        <h3 className="text-sm font-semibold mb-2">Participants ({participants.size})</h3>
-        <div className="space-y-1">
-          {Array.from(participants.entries()).map(([id, p]) => (
-            <div key={id} className="flex items-center gap-2">
-              <div 
-                className="w-3 h-3 rounded-full" 
-                style={{ backgroundColor: p.color }}
-              />
-              <span className="text-xs">{p.name || id.slice(0, 6)}</span>
-              {id === user.id && <span className="text-xs text-gray-500">(you)</span>}
-            </div>
-          ))}
-        </div>
-      </div>
     </div>
   )
 }
