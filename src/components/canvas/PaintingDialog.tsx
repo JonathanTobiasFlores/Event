@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import DrawingCanvas from './DrawingCanvas';
 import { Painting, Stroke } from '@/app/types/canvas';
 import { getOrCreateUser } from '@/lib/utils/user';
@@ -50,6 +50,9 @@ export default function PaintingDialog({ painting, isOpen, onClose }: PaintingDi
               <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
             )}
           </DialogTitle>
+          <DialogDescription>
+            Draw together in real time. Your strokes will appear to all participants instantly.
+          </DialogDescription>
         </DialogHeader>
         <div className="aspect-square w-full max-h-[70vh] p-4">
           <DrawingCanvas
