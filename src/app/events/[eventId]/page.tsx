@@ -1,32 +1,24 @@
-import { notFound } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
-import SharedCanvas from '@/components/SharedCanvas'
-import EventTopBar from '@/components/EventTopBar'
-import ParticipantsList from '@/components/ParticipantsList'
+import { notFound } from 'next/navigation';
+import { createClient } from '@/lib/supabase/server';
+import EventCanvas from '@/components/EventCanvas';
 
-export default async function EventPage({ params }: { params: Promise<{ eventId: string }> }) {
-  const { eventId } = await params
-  const supabase = await createClient()
-  const { data: event } = await supabase
+export default async function EventPage({ 
+  params 
+}: { 
+  params: Promise<{ eventId: string }> 
+}) {
+  const { eventId } = await params;
+  const supabase = await createClient();
+  
+  const { data: event, error } = await supabase
     .from('events')
     .select('*')
     .eq('id', eventId)
-    .single()
+    .single();
 
-  if (!event) return notFound()
+  if (error || !event) {
+    return notFound();
+  }
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <EventTopBar
-        eventName={event.name}
-        eventDate={event.date}
-        eventImage={event.image_url}
-        eventId={event.id}
-      />
-      <div className="pt-16">
-        <ParticipantsList eventId={event.id} />
-        <SharedCanvas eventId={event.id} />
-      </div>
-    </div>
-  )
-} 
+  return <EventCanvas event={event} />;
+}

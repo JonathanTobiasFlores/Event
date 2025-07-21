@@ -1,191 +1,160 @@
-'use client'
+'use client';
 
-import { useState, useEffect, useRef } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import { Button } from '@/components/ui/button'
-import Link from 'next/link'
-import EventCard from '@/components/EventCard'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogTrigger, DialogDescription } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { Calendar } from '@/components/ui/calendar'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import { format } from 'date-fns'
+import { useState, useEffect } from 'react';
+import { createClient } from '@/lib/supabase/client';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import Link from 'next/link';
+import { Calendar, Plus } from 'lucide-react';
+import { Event } from '@/app/types/canvas';
+import { format } from 'date-fns';
 
-type Event = {
-  id: string
-  name: string
-  date: string
-  created_at: string
-  image_url?: string
-}
-
-export default function EventsPage() {
-  const [events, setEvents] = useState<Event[]>([])
-  const [loading, setLoading] = useState(true)
-  const [creating, setCreating] = useState(false)
-  const [images, setImages] = useState<Record<string, string>>({})
-  const [dates, setDates] = useState<Record<string, Date>>({})
-  const [modalOpen, setModalOpen] = useState(false)
-  const [newName, setNewName] = useState('')
-  const [newDate, setNewDate] = useState<Date | undefined>(undefined)
-  const [newImage, setNewImage] = useState<File | null>(null)
-  const [newImageUrl, setNewImageUrl] = useState<string | undefined>(undefined)
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const supabase = createClient()
+export default function HomePage() {
+  const [events, setEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(false);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [eventName, setEventName] = useState('');
+  const [eventDate, setEventDate] = useState('');
+  const supabase = createClient();
 
   useEffect(() => {
-    loadEvents()
-  }, [])
+    loadEvents();
+  }, []);
 
   async function loadEvents() {
     const { data, error } = await supabase
       .from('events')
       .select('*')
-      .order('date', { ascending: true })
-    if (error) {
-      console.error('Error loading events:', error)
-    } else {
-      setEvents(data || [])
+      .order('date', { ascending: true });
+    
+    if (!error && data) {
+      setEvents(data);
     }
-    setLoading(false)
+    setLoading(false);
   }
 
-  async function createEvent() {
-    if (!newName || !newDate) return
-    setCreating(true)
-    const eventId = `event-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-    let imageUrl: string | undefined = undefined
-    if (newImage) {
-      // For demo: store as data URL. For prod, upload to Supabase Storage.
-      const reader = new FileReader()
-      imageUrl = await new Promise<string>(resolve => {
-        reader.onload = e => resolve(e.target?.result as string)
-        reader.readAsDataURL(newImage)
-      })
-    }
+  async function createEvent(e: React.FormEvent) {
+    e.preventDefault();
+    if (!eventName.trim() || !eventDate) return;
+    
+    setCreating(true);
+    const eventId = `event-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    
     const { error } = await supabase
       .from('events')
       .insert({
         id: eventId,
-        name: newName,
-        date: newDate.toISOString(),
-        image_url: imageUrl
-      })
-    if (error) {
-      console.error('Error creating event:', error)
-      alert('Error creating event')
-    } else {
-      setNewName('')
-      setNewDate(undefined)
-      setNewImage(null)
-      setNewImageUrl(undefined)
-      setModalOpen(false)
-      await loadEvents()
+        name: eventName.trim(),
+        date: new Date(eventDate).toISOString()
+      });
+    
+    if (!error) {
+      await loadEvents();
+      setEventName('');
+      setEventDate('');
+      setShowCreateForm(false);
     }
-    setCreating(false)
+    setCreating(false);
   }
 
-  if (loading) return <div className="p-8">Loading...</div>
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading events...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold">Event Planner</h1>
-          <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-            <DialogTrigger asChild>
-              <Button onClick={() => setModalOpen(true)} disabled={creating}>
-                Create Event
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Create New Event</DialogTitle>
-                <DialogDescription>
-                  Fill in the details below to create a new event.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4">
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-4xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Collaborative Canvas</h1>
+          <p className="text-gray-600">Create events and draw together in real-time</p>
+        </div>
+
+        {showCreateForm ? (
+          <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 className="text-lg font-semibold mb-4">Create New Event</h2>
+            <form onSubmit={createEvent} className="space-y-4">
+              <div>
+                <Label htmlFor="name">Event Name</Label>
                 <Input
-                  placeholder="Event name"
-                  value={newName}
-                  onChange={e => setNewName(e.target.value)}
+                  id="name"
+                  value={eventName}
+                  onChange={(e) => setEventName(e.target.value)}
+                  placeholder="Birthday Party, Team Meeting, etc."
+                  required
                   disabled={creating}
                 />
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button type="button" variant="outline" className="w-full justify-start">
-                      {newDate ? format(newDate, 'PPP') : 'Pick a date'}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent align="center" className="p-0">
-                    <Calendar
-                      mode="single"
-                      selected={newDate}
-                      onSelect={d => setNewDate(d)}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-                <div>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={e => {
-                      if (e.target.files && e.target.files[0]) {
-                        setNewImage(e.target.files[0])
-                        const reader = new FileReader()
-                        reader.onload = ev => setNewImageUrl(ev.target?.result as string)
-                        reader.readAsDataURL(e.target.files[0])
-                      }
-                    }}
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="w-full"
-                  >
-                    {newImageUrl ? 'Change Image' : 'Upload Image'}
-                  </Button>
-                  {newImageUrl && (
-                    <img src={newImageUrl} alt="Preview" className="mt-2 w-full h-32 object-cover rounded" />
-                  )}
-                </div>
               </div>
-              <DialogFooter>
-                <Button onClick={createEvent} disabled={creating || !newName || !newDate}>
-                  {creating ? 'Creating...' : 'Create'}
+              <div>
+                <Label htmlFor="date">Event Date</Label>
+                <Input
+                  id="date"
+                  type="date"
+                  value={eventDate}
+                  onChange={(e) => setEventDate(e.target.value)}
+                  required
+                  disabled={creating}
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowCreateForm(false)}
+                  disabled={creating}
+                >
+                  Cancel
                 </Button>
-                <DialogClose asChild>
-                  <Button type="button" variant="ghost" onClick={() => setModalOpen(false)}>
-                    Cancel
-                  </Button>
-                </DialogClose>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {events.map(event => (
-            <Link key={event.id} href={`/events/${event.id}`} className="block">
-              <EventCard
-                name={event.name}
-                date={dates[event.id] || new Date(event.date)}
-                imageUrl={images[event.id] || event.image_url}
-                onDateChange={date => setDates(ds => ({ ...ds, [event.id]: date }))}
-              />
-            </Link>
-          ))}
-        </div>
-        {events.length === 0 && (
-          <div className="text-center py-12 text-gray-500">
-            No events yet. Create your first event!
+                <Button type="submit" disabled={creating}>
+                  {creating ? 'Creating...' : 'Create Event'}
+                </Button>
+              </div>
+            </form>
+          </div>
+        ) : (
+          <div className="mb-8 flex justify-center">
+            <Button onClick={() => setShowCreateForm(true)} size="lg" className="gap-2">
+              <Plus className="h-5 w-5" />
+              Create Event
+            </Button>
+          </div>
+        )}
+
+        {events.length === 0 ? (
+          <div className="text-center py-16 bg-white rounded-lg">
+            <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No events yet</h3>
+            <p className="text-gray-500">Create your first event to get started</p>
+          </div>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {events.map((event) => (
+              <Link
+                key={event.id}
+                href={`/events/${event.id}`}
+                className="block bg-white rounded-lg shadow hover:shadow-md transition-shadow p-6"
+              >
+                <h3 className="text-lg font-semibold mb-2">{event.name}</h3>
+                <p className="text-gray-600 flex items-center gap-2">
+                  <Calendar className="h-4 w-4" />
+                  {format(new Date(event.date), 'yyyy-MM-dd')}
+                </p>
+                <p className="text-sm text-gray-500 mt-4">
+                  Tap to view canvases →
+                </p>
+              </Link>
+            ))}
           </div>
         )}
       </div>
     </div>
-  )
+  );
 }
