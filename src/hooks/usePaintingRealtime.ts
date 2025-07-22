@@ -39,7 +39,7 @@ export function usePaintingRealtime({
 
       if (data && !error) {
         setStrokes(
-          data.map((row) => ({
+          data.map((row: any) => ({
             points: row.points,
             color: row.color,
             userId: row.user_id,

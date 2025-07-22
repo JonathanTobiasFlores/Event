@@ -73,48 +73,49 @@ export function setupPaintingChannel(
       const state = channel.presenceState()
       participants.clear()
       
-      Object.entries(state).forEach(([key, presences]: [string, any[]]) => {
-        if (presences.length > 0) {
-          const presence = presences[0]
+      Object.entries(state).forEach(([key, presences]: [string, unknown]) => {
+        const presArr = presences as any[];
+        if (presArr.length > 0) {
+          const presence = presArr[0];
           participants.set(key, {
             userId: key,
             userName: presence.userName || 'Anonymous',
             color: presence.color || '#000000',
             cursor: presence.cursor || { x: -100, y: -100 },
             isDrawing: presence.isDrawing || false
-          })
+          });
         }
-      })
+      });
       
       onParticipantsUpdate(new Map(participants))
     })
-    .on('presence', { event: 'join' }, ({ key, newPresences }) => {
+    .on('presence', { event: 'join' }, ({ key, newPresences }: { key: string, newPresences: any[] }) => {
       if (newPresences.length > 0) {
-        const presence = newPresences[0]
+        const presence = newPresences[0];
         participants.set(key, {
           userId: key,
           userName: presence.userName || 'Anonymous',
           color: presence.color || '#000000',
           cursor: presence.cursor || { x: -100, y: -100 },
           isDrawing: presence.isDrawing || false
-        })
-        onParticipantsUpdate(new Map(participants))
+        });
+        onParticipantsUpdate(new Map(participants));
       }
     })
-    .on('presence', { event: 'leave' }, ({ key }) => {
-      participants.delete(key)
-      onParticipantsUpdate(new Map(participants))
+    .on('presence', { event: 'leave' }, ({ key }: { key: string }) => {
+      participants.delete(key);
+      onParticipantsUpdate(new Map(participants));
     })
 
   // Handle stroke broadcasts
-  channel.on('broadcast', { event: 'stroke' }, ({ payload }) => {
+  channel.on('broadcast', { event: 'stroke' }, ({ payload }: { payload: any }) => {
     if (payload.userId !== userId) {
-      onStrokeReceived(payload)
+      onStrokeReceived(payload);
     }
   })
 
   // Subscribe to the channel
-  channel.subscribe(async (status) => {
+  channel.subscribe(async (status: string) => {
     if (status === 'SUBSCRIBED') {
       // Join with initial presence
       await channel.track({
@@ -122,7 +123,7 @@ export function setupPaintingChannel(
         color: userColor,
         cursor: { x: -100, y: -100 },
         isDrawing: false
-      })
+      });
     }
   })
 
@@ -193,7 +194,7 @@ export function broadcastInProgressStroke(paintingId: string, userId: string, po
 export function listenInProgressStrokes(paintingId: string, onUpdate: (userId: string, points: { x: number, y: number }[], color: string) => void) {
   const state = canvasStates.get(paintingId);
   if (!state?.channel) return;
-  state.channel.on('broadcast', { event: 'inprogress' }, ({ payload }) => {
+  state.channel.on('broadcast', { event: 'inprogress' }, ({ payload }: { payload: any }) => {
     if (payload && payload.userId && payload.points) {
       onUpdate(payload.userId, payload.points, payload.color);
     }

@@ -50,7 +50,7 @@ export default function PaintingCard({ painting }: PaintingCardProps) {
             ctx.fillStyle = 'white';
             ctx.fillRect(0, 0, 300, 300);
             
-            data.forEach((stroke) => {
+            data.forEach((stroke: any) => {
               const points = stroke.points;
               if (!Array.isArray(points) || points.length < 2) return;
               

@@ -33,7 +33,7 @@ export function useRealtimePresence({ channelName, userId, userData }: UseRealti
         setPresenceState(newChannel.presenceState());
       });
 
-    newChannel.subscribe(async (status) => {
+    newChannel.subscribe(async (status: string) => {
       if (status === 'SUBSCRIBED' && userData) {
         await newChannel.track(userData);
       }
