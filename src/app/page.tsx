@@ -13,6 +13,7 @@ import EventCard from '@/components/EventCard';
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Calendar as ShadcnCalendar } from '@/components/ui/calendar';
+import { getCurrentUser } from '@/lib/supabase/client';
 
 export default function HomePage() {
   const [events, setEvents] = useState<Event[]>([]);
@@ -24,9 +25,11 @@ export default function HomePage() {
   const [eventImageFile, setEventImageFile] = useState<File | null>(null);
   const [eventImagePreview, setEventImagePreview] = useState<string | null>(null);
   const supabase = createClient();
+  const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
     loadEvents();
+    getCurrentUser().then(({ data }) => setUser(data.user));
   }, []);
 
   async function loadEvents() {
@@ -79,6 +82,14 @@ export default function HomePage() {
     setCreating(false);
   }
 
+  const getFirstName = (user: any) => {
+    return (
+      user?.user_metadata?.given_name ||
+      user?.user_metadata?.full_name?.split(' ')[0] ||
+      user?.email?.split('@')[0]
+    );
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -93,6 +104,11 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-4xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+        {user && (
+          <div className="mb-4 text-lg font-semibold text-primary">
+            Welcome, {getFirstName(user)}!
+          </div>
+        )}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Collaborative Canvas</h1>
           <p className="text-gray-600">Create events and draw together in real-time</p>

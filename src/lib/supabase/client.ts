@@ -6,3 +6,8 @@ export function createClient() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   )
 }
+
+export function getCurrentUser() {
+  const supabase = createClient();
+  return supabase.auth.getUser();
+}
