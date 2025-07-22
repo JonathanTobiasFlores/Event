@@ -55,9 +55,9 @@ function CreateListDialog({ isOpen, onClose, eventId, userId }: CreateListDialog
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md bg-mint-1 border-mint-2/30">
         <DialogHeader>
-          <DialogTitle>Create List</DialogTitle>
+          <DialogTitle className="text-2xl tracking-tight">Create List</DialogTitle>
           <DialogDescription>Add a new list for your event. You can add items below.</DialogDescription>
         </DialogHeader>
         <form onSubmit={e => { e.preventDefault(); handleCreate(); }} className="space-y-4">
@@ -70,6 +70,7 @@ function CreateListDialog({ isOpen, onClose, eventId, userId }: CreateListDialog
               placeholder="List Title"
               required
               disabled={loading}
+              className="bg-mint-0 border-mint-2/50 focus:ring-mint-2"
             />
           </div>
           <div>
@@ -77,24 +78,24 @@ function CreateListDialog({ isOpen, onClose, eventId, userId }: CreateListDialog
             <div className="flex gap-2 mb-2">
               <Input
                 id="add-item"
-                className="flex-1"
+                className="flex-1 bg-mint-0 border-mint-2/50 focus:ring-mint-2"
                 placeholder="Add item"
                 value={item}
                 onChange={e => setItem(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleAddItem())}
                 disabled={loading}
               />
-              <Button onClick={handleAddItem} type="button" disabled={loading || !item.trim()}>Add</Button>
+              <Button onClick={handleAddItem} type="button" disabled={loading || !item.trim()} className="bg-mint-3 hover:bg-mint-3/90 text-white">Add</Button>
             </div>
           </div>
-          <ul className="list-disc pl-5 mb-2">
+          <ul className="list-disc pl-5 mb-2 text-muted-foreground">
             {items.map((pt, idx) => <li key={idx}>{pt}</li>)}
           </ul>
           <DialogFooter className="flex gap-2 justify-end pt-4">
             <DialogClose asChild>
-              <Button type="button" variant="outline" disabled={loading}>Cancel</Button>
+              <Button type="button" variant="outline" disabled={loading} className="border-mint-2/50">Cancel</Button>
             </DialogClose>
-            <Button type="submit" disabled={loading || !title.trim() || items.length === 0}>
+            <Button type="submit" disabled={loading || !title.trim() || items.length === 0} className="bg-mint-3 hover:bg-mint-3/90 text-white">
               {loading ? 'Creating...' : 'Create List'}
             </Button>
           </DialogFooter>
@@ -170,33 +171,33 @@ export default function EventCanvas({ event }: EventCanvasProps) {
   }, [event.id, supabase]);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="bg-white shadow-sm sticky top-0 z-10">
+    <div className="min-h-screen bg-mint-0">
+      <div className="sticky top-0 z-10 backdrop-blur-lg bg-mint-0/80 border-b border-mint-2/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-4">
               <Link href="/">
-                <Button variant="ghost" size="icon">
+                <Button variant="ghost" size="icon" className="hover:bg-mint-1">
                   <ArrowLeft className="h-5 w-5" />
                 </Button>
               </Link>
               <div>
-                <h1 className="text-xl font-semibold">{event.name}</h1>
-                <p className="text-sm text-gray-500">
-                  {format(new Date(event.date), 'yyyy-MM-dd')}
+                <h1 className="text-xl font-semibold tracking-tight">{event.name}</h1>
+                <p className="text-sm text-muted-foreground">
+                  {format(new Date(event.date), 'PPP')}
                 </p>
               </div>
             </div>
             <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
               <PopoverTrigger asChild>
-                <Button size="sm" className="gap-2">
+                <Button size="sm" className="gap-2 bg-mint-3 hover:bg-mint-3/90 text-white shadow-lg hover:shadow-xl transition-all transform hover:scale-105">
                   <Plus className="h-4 w-4" /> New
                 </Button>
               </PopoverTrigger>
-              <PopoverContent align="end" className="w-32 p-0">
+              <PopoverContent align="end" className="w-32 p-0 bg-mint-1 border-mint-2/30">
                 <div className="flex flex-col">
-                  <Button variant="ghost" className="justify-start rounded-none" onClick={() => { setOpenType('canvas'); setPopoverOpen(false); }}>Canvas</Button>
-                  <Button variant="ghost" className="justify-start rounded-none" onClick={() => { setOpenType('list'); setPopoverOpen(false); }}>List</Button>
+                  <Button variant="ghost" className="justify-start rounded-none hover:bg-mint-2/30" onClick={() => { setOpenType('canvas'); setPopoverOpen(false); }}>Canvas</Button>
+                  <Button variant="ghost" className="justify-start rounded-none hover:bg-mint-2/30" onClick={() => { setOpenType('list'); setPopoverOpen(false); }}>List</Button>
                 </div>
               </PopoverContent>
             </Popover>
@@ -217,36 +218,41 @@ export default function EventCanvas({ event }: EventCanvasProps) {
       />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {loading ? (
-          <div className="text-center py-16">Loading...</div>
+          <div className="text-center py-16">
+            <div className="animate-spin rounded-full h-12 w-12 border-4 border-mint-2 border-t-mint-3 mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading...</p>
+          </div>
         ) : (
           <>
-            <div className="mb-10">
-              <h2 className="text-xl font-semibold mb-4">Canvases</h2>
+            <div className="mb-10 animate-fade-in-up">
+              <h2 className="text-xl font-semibold mb-4 tracking-tight">Canvases</h2>
               {paintings.length === 0 ? (
-                <div className="text-gray-500">No canvases yet.</div>
+                <div className="text-muted-foreground bg-mint-1/50 rounded-2xl p-8 text-center">No canvases yet. Create one to start drawing!</div>
               ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                  {paintings.map((painting) => (
-                    <PaintingCard key={painting.id} painting={painting} />
+                  {paintings.map((painting, index) => (
+                    <div key={painting.id} className="animate-fade-in-up" style={{ animationDelay: `${index * 50}ms` }}>
+                      <PaintingCard painting={painting} />
+                    </div>
                   ))}
                 </div>
               )}
             </div>
-            <div>
-              <h2 className="text-xl font-semibold mb-4">Lists</h2>
+            <div className="animate-fade-in-up" style={{ animationDelay: '100ms' }}>
+              <h2 className="text-xl font-semibold mb-4 tracking-tight">Lists</h2>
               {lists.length === 0 ? (
-                <div className="text-gray-500">No lists yet.</div>
+                <div className="text-muted-foreground bg-mint-1/50 rounded-2xl p-8 text-center">No lists yet. Create one to get organized!</div>
               ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                  {lists.map((list) => (
-                    <div key={list.id} className="bg-white rounded-lg shadow p-6">
-                      <h3 className="text-lg font-semibold mb-2">{list.title}</h3>
-                      <ul className="list-disc pl-5 text-gray-700">
+                  {lists.map((list, index) => (
+                    <div key={list.id} className="bg-mint-1 rounded-2xl shadow-lg p-6 animate-fade-in-up hover:shadow-xl transition-all" style={{ animationDelay: `${(index + paintings.length) * 50}ms` }}>
+                      <h3 className="text-lg font-semibold mb-2 tracking-tight">{list.title}</h3>
+                      <ul className="list-disc pl-5 text-muted-foreground">
                         {Array.isArray(list.items) ? list.items.map((item: string, idx: number) => (
-                          <li key={idx}>{item}</li>
+                          <li key={idx} className="text-sm">{item}</li>
                         )) : null}
                       </ul>
-                      <p className="text-gray-500 text-xs mt-2">Created {format(new Date(list.created_at), 'yyyy-MM-dd')}</p>
+                      <p className="text-xs text-muted-foreground mt-4">Created {format(new Date(list.created_at), 'MMM d, yyyy')}</p>
                     </div>
                   ))}
                 </div>

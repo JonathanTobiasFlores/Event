@@ -1,7 +1,6 @@
 import { Card, CardContent } from './ui/card'
-import { Avatar, AvatarImage } from './ui/avatar'
-import { Button } from './ui/button'
 import { format } from 'date-fns'
+import { Calendar } from 'lucide-react'
 
 export type EventCardProps = {
   name: string
@@ -13,27 +12,30 @@ export type EventCardProps = {
 
 export default function EventCard({ name, date, imageUrl, onDateChange, onClick }: EventCardProps) {
   return (
-    <Card className="w-full max-w-xs cursor-pointer hover:shadow-lg transition-shadow" onClick={onClick}>
-      <CardContent className="flex flex-col items-center p-4">
-        <div className="relative w-32 h-32 mb-4">
-          <Avatar className="w-32 h-32 rounded-lg">
-            {imageUrl ? (
-              <AvatarImage src={imageUrl} alt={name} className="object-cover w-full h-full" />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center bg-gray-200 rounded-lg text-gray-400 text-4xl">
-                +
-              </div>
-            )}
-          </Avatar>
-        </div>
-        <div className="w-full text-center">
-          <div className="font-semibold text-lg mb-1 truncate">{name}</div>
-          <Button type="button" variant="ghost" className="w-full justify-center" disabled>
-            <span className="mr-2">{date ? format(date, 'PPP') : 'No date'}</span>
-            <span role="img" aria-label="calendar">📅</span>
-          </Button>
+    <Card 
+      className="w-full max-w-md mx-auto bg-mint-1 border-mint-2/30 shadow-md hover:shadow-lg transition-all duration-200 transform hover:scale-[1.02] cursor-pointer rounded-xl overflow-hidden flex flex-col items-center gap-4 p-6 group" 
+      onClick={onClick}
+    >
+      {/* Larger square image/avatar */}
+      <div className="w-24 h-24 rounded-xl bg-mint-0 border border-mint-2/30 flex items-center justify-center overflow-hidden mb-2">
+        {imageUrl ? (
+          <img 
+            src={imageUrl} 
+            alt={name} 
+            className="w-full h-full object-cover rounded-xl" 
+          />
+        ) : (
+          <Calendar className="w-10 h-10 text-mint-3/50" />
+        )}
+      </div>
+      {/* Event info */}
+      <CardContent className="flex flex-col items-center p-0 w-full">
+        <h3 className="font-semibold text-lg text-foreground text-center mb-1 truncate w-full">{name}</h3>
+        <div className="flex items-center gap-2 text-sm text-muted-foreground justify-center">
+          <Calendar className="w-4 h-4 text-mint-3" />
+          <span className="truncate">{format(date, 'PPP')}</span>
         </div>
       </CardContent>
     </Card>
   )
-} 
+}

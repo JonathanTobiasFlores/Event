@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import Link from 'next/link';
-import { Calendar, Plus } from 'lucide-react';
+import { Calendar, Plus, Sparkles } from 'lucide-react';
 import { Event } from '@/app/types/canvas';
 import { format } from 'date-fns';
 import EventCard from '@/components/EventCard';
@@ -51,7 +51,6 @@ export default function HomePage() {
     const eventId = `event-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     let imageUrl: string | null = null;
     if (eventImageFile) {
-      // Upload image to Supabase Storage
       const fileExt = eventImageFile.name.split('.').pop();
       const filePath = `events/${eventId}.${fileExt}`;
       const { data: uploadData, error: uploadError } = await supabase.storage.from('event-images').upload(filePath, eventImageFile, { upsert: true });
@@ -92,125 +91,142 @@ export default function HomePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading events...</p>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-mint-2 border-t-mint-3 mx-auto"></div>
+          <p className="text-muted-foreground">Loading events...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-4xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+    <div className="container mx-auto px-4 pt-safe pb-20 space-y-6">
+      <div className="animate-fade-in-up">
         {user && (
-          <div className="mb-4 text-lg font-semibold text-primary">
-            Welcome, {getFirstName(user)}!
+          <div className="mb-6">
+            <h2 className="text-2xl font-semibold tracking-tight text-foreground">
+              Welcome back, {getFirstName(user)}!
+            </h2>
+            <p className="text-muted-foreground">Ready to create something amazing today?</p>
           </div>
         )}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Collaborative Canvas</h1>
-          <p className="text-gray-600">Create events and draw together in real-time</p>
-        </div>
-        <Dialog open={openDialog} onOpenChange={setOpenDialog}>
-          <DialogTrigger asChild>
-            <Button size="lg" className="gap-2 mb-8">
-              <Plus className="h-5 w-5" />
-              Create Event
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Create New Event</DialogTitle>
-              <DialogDescription>Fill in the details below to create a new collaborative event.</DialogDescription>
-            </DialogHeader>
-            <form onSubmit={createEvent} className="space-y-4">
-              <div>
-                <Label htmlFor="name">Event Name</Label>
-                <Input
-                  id="name"
-                  value={eventName}
-                  onChange={(e) => setEventName(e.target.value)}
-                  placeholder="Birthday Party, Team Meeting, etc."
-                  required
-                  disabled={creating}
-                />
-              </div>
-              <div>
-                <Label htmlFor="date">Event Date</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={"w-full justify-start text-left font-normal " + (!selectedDate ? 'text-muted-foreground' : '')}
-                      type="button"
-                      disabled={creating}
-                    >
-                      {selectedDate ? format(selectedDate, 'PPP') : 'Pick a date'}
+
+        {/* Section header and Create Event button */}
+        <div className="flex items-center justify-between mb-8">
+          <h2 className="text-2xl font-semibold tracking-tight text-foreground">
+            Your Events
+          </h2>
+          <Dialog open={openDialog} onOpenChange={setOpenDialog}>
+            <DialogTrigger asChild>
+              <Button size="lg" className="gap-2 bg-mint-3 hover:bg-mint-3/90 text-white shadow-lg hover:shadow-xl transition-all transform hover:scale-105">
+                <Plus className="h-5 w-5" />
+                Create Event
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md bg-mint-1 border-mint-2/30">
+              <DialogHeader>
+                <DialogTitle className="text-2xl tracking-tight">Create New Event</DialogTitle>
+                <DialogDescription>Fill in the details below to create a new collaborative event.</DialogDescription>
+              </DialogHeader>
+              <form onSubmit={createEvent} className="space-y-6">
+                <div className="space-y-2">
+                  <Label htmlFor="name" className="text-base font-medium">Event Name</Label>
+                  <Input
+                    id="name"
+                    value={eventName}
+                    onChange={(e) => setEventName(e.target.value)}
+                    placeholder="Birthday Party, Team Meeting, etc."
+                    required
+                    disabled={creating}
+                    className="bg-mint-0 border-mint-2/50 focus:ring-mint-2 focus:border-mint-3"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="date" className="text-base font-medium">Event Date</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={"w-full justify-start text-left font-normal bg-mint-0 border-mint-2/50 hover:bg-mint-1/50 " + (!selectedDate ? 'text-muted-foreground' : '')}
+                        type="button"
+                        disabled={creating}
+                      >
+                        <Calendar className="mr-2 h-4 w-4" />
+                        {selectedDate ? format(selectedDate, 'PPP') : 'Pick a date'}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent align="start" className="p-0 bg-mint-1 border-mint-2/30">
+                      <ShadcnCalendar
+                        mode="single"
+                        selected={selectedDate}
+                        onSelect={setSelectedDate}
+                        initialFocus
+                        className="rounded-md"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="image" className="text-base font-medium">Event Image (optional)</Label>
+                  <Input
+                    id="image"
+                    type="file"
+                    accept="image/*"
+                    disabled={creating}
+                    className="bg-mint-0 border-mint-2/50 file:bg-mint-2 file:text-foreground file:border-0 file:rounded-md file:mr-4"
+                    onChange={e => {
+                      const file = e.target.files?.[0] || null;
+                      setEventImageFile(file);
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (ev) => setEventImagePreview(ev.target?.result as string);
+                        reader.readAsDataURL(file);
+                      } else {
+                        setEventImagePreview(null);
+                      }
+                    }}
+                  />
+                  {eventImagePreview && (
+                    <img src={eventImagePreview} alt="Preview" className="mt-4 rounded-2xl w-32 h-40 object-cover border-2 border-mint-2/50" />
+                  )}
+                </div>
+                <DialogFooter className="flex gap-3 justify-end pt-4">
+                  <DialogClose asChild>
+                    <Button type="button" variant="outline" disabled={creating} className="border-mint-2/50 hover:bg-mint-1/50">
+                      Cancel
                     </Button>
-                  </PopoverTrigger>
-                  <PopoverContent align="start" className="p-0">
-                    <ShadcnCalendar
-                      mode="single"
-                      selected={selectedDate}
-                      onSelect={setSelectedDate}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-              <div>
-                <Label htmlFor="image">Event Image (optional)</Label>
-                <Input
-                  id="image"
-                  type="file"
-                  accept="image/*"
-                  disabled={creating}
-                  onChange={e => {
-                    const file = e.target.files?.[0] || null;
-                    setEventImageFile(file);
-                    if (file) {
-                      const reader = new FileReader();
-                      reader.onload = (ev) => setEventImagePreview(ev.target?.result as string);
-                      reader.readAsDataURL(file);
-                    } else {
-                      setEventImagePreview(null);
-                    }
-                  }}
-                />
-                {eventImagePreview && (
-                  <img src={eventImagePreview} alt="Preview" className="mt-2 rounded w-32 h-32 object-cover border" />
-                )}
-              </div>
-              <DialogFooter className="flex gap-2 justify-end pt-4">
-                <DialogClose asChild>
-                  <Button type="button" variant="outline" disabled={creating}>
-                    Cancel
+                  </DialogClose>
+                  <Button type="submit" disabled={creating || !eventName.trim() || !selectedDate} className="bg-mint-3 hover:bg-mint-3/90 text-white">
+                    {creating ? (
+                      <>
+                        <Sparkles className="mr-2 h-4 w-4 animate-spin" />
+                        Creating...
+                      </>
+                    ) : (
+                      'Create Event'
+                    )}
                   </Button>
-                </DialogClose>
-                <Button type="submit" disabled={creating || !eventName.trim() || !selectedDate}>
-                  {creating ? 'Creating...' : 'Create Event'}
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
 
         {events.length === 0 ? (
-          <div className="text-center py-16 bg-white rounded-lg">
-            <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No events yet</h3>
-            <p className="text-gray-500">Create your first event to get started</p>
+          <div className="text-center py-20 bg-mint-1 rounded-2xl shadow-lg border border-mint-2/30">
+            <Calendar className="h-16 w-16 text-mint-3 mx-auto mb-4" />
+            <h3 className="text-2xl font-semibold text-foreground mb-2 tracking-tight">No events yet</h3>
+            <p className="text-muted-foreground mb-6">Create your first event to get started</p>
           </div>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {events.map((event) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {events.map((event, index) => (
               <Link
                 key={event.id}
                 href={`/events/${event.id}`}
-                className="block"
-                style={{ textDecoration: 'none' }}
+                className="block animate-fade-in-up"
+                style={{ animationDelay: `${index * 50}ms` }}
               >
                 <EventCard
                   name={event.name}
