@@ -40,6 +40,15 @@ export async function signOut() {
   return supabase.auth.signOut();
 }
 
+// Add color to the Profile type
+export type Profile = {
+  id: string;
+  email: string;
+  full_name?: string;
+  avatar_url?: string;
+  color?: string;
+};
+
 // Profile helpers
 export async function getProfile(userId: string) {
   const supabase = createClient();
@@ -53,6 +62,7 @@ export async function getProfile(userId: string) {
 export async function updateProfile(userId: string, updates: {
   full_name?: string;
   avatar_url?: string;
+  color?: string;
 }) {
   const supabase = createClient();
   return supabase

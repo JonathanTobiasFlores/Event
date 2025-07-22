@@ -3,18 +3,11 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { User } from '@supabase/supabase-js';
-import { getCurrentUser, signOut, getProfile } from '@/lib/supabase/client';
+import { getCurrentUser, signOut, getProfile, Profile } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Loader2, LogOut, User as UserIcon } from 'lucide-react';
-
-interface Profile {
-  id: string;
-  email: string;
-  full_name?: string;
-  avatar_url?: string;
-}
 
 export default function UserMenu() {
   const router = useRouter();
@@ -103,7 +96,14 @@ export default function UserMenu() {
             </div>
           </div>
           
-          <div className="border-t pt-2">
+          <div className="border-t pt-2 flex flex-col gap-2">
+            <Button
+              variant="ghost"
+              className="w-full justify-start"
+              onClick={() => router.push('/settings')}
+            >
+              Settings
+            </Button>
             <Button
               variant="ghost"
               className="w-full justify-start"

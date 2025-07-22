@@ -14,6 +14,7 @@ interface DrawingCanvasProps {
   onStrokeComplete: (stroke: Stroke) => void;
   onCursorMove: (x: number, y: number, isDrawing?: boolean) => void;
   isConnected?: boolean;
+  userColor: string;
 }
 
 export default function DrawingCanvas({
@@ -22,14 +23,14 @@ export default function DrawingCanvas({
   participants,
   onStrokeComplete,
   onCursorMove,
-  isConnected = true
+  isConnected = true,
+  userColor
 }: DrawingCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [currentPoints, setCurrentPoints] = useState<Point[]>([]);
   const [ghostStrokes, setGhostStrokes] = useState<Record<string, { points: Point[]; color: string }>>({});
   const user = getOrCreateUser();
-  const userColor = generateUserColor(user.id);
   const animationFrameRef = useRef<number | null>(null);
 
   // Listen for in-progress strokes from others

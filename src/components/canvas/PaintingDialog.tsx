@@ -8,6 +8,7 @@ import { getOrCreateUser } from '@/lib/utils/user';
 import { generateUserColor } from '@/lib/utils/color';
 import { usePaintingRealtime } from '@/hooks/usePaintingRealtime';
 import { Loader2 } from 'lucide-react';
+import { getCurrentUser, getProfile } from '@/lib/supabase/client';
 
 interface PaintingDialogProps {
   painting: Painting;
@@ -16,21 +17,45 @@ interface PaintingDialogProps {
 }
 
 export default function PaintingDialog({ painting, isOpen, onClose }: PaintingDialogProps) {
-  const user = getOrCreateUser();
-  const userColor = generateUserColor(user.id);
-  
+  const [user, setUser] = useState<any>(null);
+  const [profile, setProfile] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function load() {
+      const { data: userData } = await getCurrentUser();
+      if (!userData?.user) return;
+      setUser(userData.user);
+      const { data: profileData } = await getProfile(userData.user.id);
+      setProfile(profileData);
+      setLoading(false);
+    }
+    load();
+  }, []);
+
+  const userColor = profile?.color || '#000000';
+
   const {
     strokes,
     participants,
     isConnected,
     sendCursorUpdate,
     sendStroke
-  } = usePaintingRealtime({
-    paintingId: painting.id,
-    userId: user.id,
-    userName: user.name,
-    userColor
-  });
+  } = usePaintingRealtime(
+    user && profile
+      ? {
+          paintingId: painting.id,
+          userId: user.id,
+          userName: user.name,
+          userColor
+        }
+      : {
+          paintingId: painting.id,
+          userId: '',
+          userName: '',
+          userColor: '#000000'
+        }
+  );
 
   const handleStrokeComplete = async (stroke: Stroke) => {
     await sendStroke(stroke.points);
@@ -39,6 +64,20 @@ export default function PaintingDialog({ painting, isOpen, onClose }: PaintingDi
   const handleCursorMove = (x: number, y: number, isDrawing: boolean = false) => {
     sendCursorUpdate(x, y, isDrawing);
   };
+
+  if (loading) {
+    return (
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="max-w-[95vw] w-full sm:max-w-lg p-0">
+          <DialogHeader className="p-4 pb-2">
+            <DialogTitle>Loading Canvas</DialogTitle>
+            <DialogDescription>Loading collaborative canvas data...</DialogDescription>
+          </DialogHeader>
+          <div className="p-8 text-center">Loading...</div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -55,14 +94,17 @@ export default function PaintingDialog({ painting, isOpen, onClose }: PaintingDi
           </DialogDescription>
         </DialogHeader>
         <div className="aspect-square w-full max-h-[70vh] p-4">
-          <DrawingCanvas
-            paintingId={painting.id}
-            strokes={strokes}
-            participants={participants}
-            onStrokeComplete={handleStrokeComplete}
-            onCursorMove={handleCursorMove}
-            isConnected={isConnected}
-          />
+          {user && profile && (
+            <DrawingCanvas
+              paintingId={painting.id}
+              strokes={strokes}
+              participants={participants}
+              onStrokeComplete={handleStrokeComplete}
+              onCursorMove={handleCursorMove}
+              isConnected={isConnected}
+              userColor={userColor}
+            />
+          )}
         </div>
         <div className="p-4 pt-2 border-t flex items-center justify-between">
           <p className="text-sm text-muted-foreground">

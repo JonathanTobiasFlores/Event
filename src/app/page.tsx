@@ -10,7 +10,7 @@ import { Calendar, Plus } from 'lucide-react';
 import { Event } from '@/app/types/canvas';
 import { format } from 'date-fns';
 import EventCard from '@/components/EventCard';
-import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription } from '@/components/ui/dialog';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Calendar as ShadcnCalendar } from '@/components/ui/calendar';
 import { getCurrentUser } from '@/lib/supabase/client';
@@ -123,6 +123,7 @@ export default function HomePage() {
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle>Create New Event</DialogTitle>
+              <DialogDescription>Fill in the details below to create a new collaborative event.</DialogDescription>
             </DialogHeader>
             <form onSubmit={createEvent} className="space-y-4">
               <div>

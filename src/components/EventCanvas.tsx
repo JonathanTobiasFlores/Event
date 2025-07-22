@@ -11,7 +11,7 @@ import Link from 'next/link';
 import { format } from 'date-fns';
 import { getOrCreateUser } from '@/lib/utils/user';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
@@ -58,6 +58,7 @@ function CreateListDialog({ isOpen, onClose, eventId, userId }: CreateListDialog
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Create List</DialogTitle>
+          <DialogDescription>Add a new list for your event. You can add items below.</DialogDescription>
         </DialogHeader>
         <form onSubmit={e => { e.preventDefault(); handleCreate(); }} className="space-y-4">
           <div>
