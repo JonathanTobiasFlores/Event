@@ -14,6 +14,9 @@ import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, Dialog
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Calendar as ShadcnCalendar } from '@/components/ui/calendar';
 import { getCurrentUser } from '@/lib/supabase/client';
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
+
+const EVENTS_PER_PAGE = 9;
 
 export default function HomePage() {
   const [events, setEvents] = useState<Event[]>([]);
@@ -26,6 +29,7 @@ export default function HomePage() {
   const [eventImagePreview, setEventImagePreview] = useState<string | null>(null);
   const supabase = createClient();
   const [user, setUser] = useState<any>(null);
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     loadEvents();
@@ -99,6 +103,9 @@ export default function HomePage() {
       </div>
     );
   }
+
+  const totalPages = Math.ceil(events.length / EVENTS_PER_PAGE);
+  const paginatedEvents = events.slice((page - 1) * EVENTS_PER_PAGE, page * EVENTS_PER_PAGE);
 
   return (
     <div className="container mx-auto px-4 pt-safe pb-20 space-y-6">
@@ -220,22 +227,56 @@ export default function HomePage() {
             <p className="text-muted-foreground mb-6">Create your first event to get started</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {events.map((event, index) => (
-              <Link
-                key={event.id}
-                href={`/events/${event.id}`}
-                className="block animate-fade-in-up"
-                style={{ animationDelay: `${index * 50}ms` }}
-              >
-                <EventCard
-                  name={event.name}
-                  date={new Date(event.date)}
-                  imageUrl={event.image_url}
-                />
-              </Link>
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {paginatedEvents.map((event) => (
+                <Link
+                  key={event.id}
+                  href={`/events/${event.id}`}
+                  className="block animate-fade-in-up"
+                >
+                  <EventCard
+                    name={event.name}
+                    date={new Date(event.date)}
+                    imageUrl={event.image_url}
+                  />
+                </Link>
+              ))}
+            </div>
+            {totalPages > 1 && (
+              <Pagination className="mt-8">
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      onClick={() => page > 1 && setPage(page - 1)}
+                      aria-disabled={page === 1}
+                      tabIndex={page === 1 ? -1 : 0}
+                    />
+                  </PaginationItem>
+                  {[...Array(totalPages)].map((_, i) => (
+                    <PaginationItem key={i}>
+                      <PaginationLink
+                        isActive={page === i + 1}
+                        onClick={() => page !== i + 1 && setPage(i + 1)}
+                        aria-current={page === i + 1 ? 'page' : undefined}
+                        aria-disabled={page === i + 1}
+                        tabIndex={page === i + 1 ? -1 : 0}
+                      >
+                        {i + 1}
+                      </PaginationLink>
+                    </PaginationItem>
+                  ))}
+                  <PaginationItem>
+                    <PaginationNext
+                      onClick={() => page < totalPages && setPage(page + 1)}
+                      aria-disabled={page === totalPages}
+                      tabIndex={page === totalPages ? -1 : 0}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            )}
+          </>
         )}
       </div>
     </div>
