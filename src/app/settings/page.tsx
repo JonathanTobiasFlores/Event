@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { getCurrentUser, getProfile, updateProfile, Profile } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from "@/components/ui/dialog";
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -73,13 +73,18 @@ export default function SettingsPage() {
             />
             <span className="ml-4 align-middle">{color}</span>
           </div>
-          <Button
-            type="submit"
-            className="px-4 py-2"
-            disabled={saving}
-          >
-            {saving ? "Saving..." : "Save"}
-          </Button>
+          <div className="flex gap-2 justify-end">
+            <DialogClose asChild>
+              <Button type="button" variant="outline" onClick={() => router.push('/')}>Close</Button>
+            </DialogClose>
+            <Button
+              type="submit"
+              className="px-4 py-2"
+              disabled={saving}
+            >
+              {saving ? "Saving..." : "Save"}
+            </Button>
+          </div>
           {message && <div className="text-green-600">{message}</div>}
         </form>
       </DialogContent>
