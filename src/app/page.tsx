@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,11 +30,20 @@ export default function HomePage() {
   const supabase = createClient();
   const [user, setUser] = useState<any>(null);
   const [page, setPage] = useState(1);
+  const gridRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     loadEvents();
     getCurrentUser().then(({ data }) => setUser(data.user));
   }, []);
+
+  useEffect(() => {
+    if (gridRef.current) {
+      const headerOffset = 72; // Adjust if your header is a different height
+      const y = gridRef.current.getBoundingClientRect().top + window.scrollY - headerOffset;
+      window.scrollTo({ top: y, behavior: 'smooth' });
+    }
+  }, [page]);
 
   async function loadEvents() {
     const { data, error } = await supabase
@@ -111,11 +120,13 @@ export default function HomePage() {
     <div className="container mx-auto px-4 pt-safe pb-20 space-y-6">
       <div className="animate-fade-in-up">
         {user && (
-          <div className="mb-6">
-            <h2 className="text-2xl font-semibold tracking-tight text-foreground">
+          <div className="mb-6 text-center">
+            <h2 className="text-2xl font-semibold tracking-tight" style={{ color: '#212121' }}>
               Welcome back, {getFirstName(user)}!
             </h2>
-            <p className="text-muted-foreground">Ready to create something amazing today?</p>
+            <p className="text-muted-foreground" style={{ color: '#212121' }}>
+              Ready to create something amazing today?
+            </p>
           </div>
         )}
 
@@ -228,7 +239,7 @@ export default function HomePage() {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            <div ref={gridRef} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 min-h-[420px] md:min-h-[420px] lg:min-h-[420px]">
               {paginatedEvents.map((event) => (
                 <Link
                   key={event.id}

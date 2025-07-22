@@ -21,7 +21,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <div className="min-h-screen flex flex-col">
           <header className="sticky top-0 z-50 w-full backdrop-blur-lg bg-mint-3/90 border-b border-mint-2/30">
             <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-              <h1 className="text-lg font-semibold text-white tracking-tight">Party Platypus</h1>
+              <h1
+                className="font-normal text-xl sm:text-3xl lg:text-5xl leading-[1] tracking-[-0.03em] font-sans whitespace-nowrap"
+                style={{ fontFamily: 'Roboto, sans-serif' }}
+              >
+                Party Platypus
+              </h1>
               <UserMenu />
             </div>
           </header>
